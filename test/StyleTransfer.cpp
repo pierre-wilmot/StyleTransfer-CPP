@@ -5,7 +5,7 @@
 TEST_CASE( "Test Output Size", "[StyleTransfer]" )
 {
   StyleTransfer model;
-  torch::Tensor t = torch::rand({1, 3, 512, 512});
+  torch::Tensor t = torch::rand({1, 3, 128, 128});
   torch::Tensor res = model->forward(t);
-  REQUIRE( res.sizes() == c10::IntArrayRef({1, 512, 32, 32}) );  
+  REQUIRE( res.sizes() == c10::IntArrayRef({1, 512, 8, 8}) );  
 }
