@@ -1,3 +1,5 @@
 *~
 build
 lib/libtorch
+.env
+*.pt

@@ -1,12 +1,18 @@
 #include <iostream>
 #include <torch/torch.h>
 
+#include "StyleTransfer.h"
+
 int main(int ac, char **av)
 {
   std::cout << "StyleTransfer++" << std::endl;
 
-  torch::Tensor t = torch::zeros({5, 5});
-  std::cout << t << std::endl;
+  StyleTransfer model;
+  std::cout << model << std::endl;
+
+  torch::Tensor t = torch::rand({1, 3, 512, 512});
+  torch::Tensor res = model->forward(t);
+  std::cout << res.sizes() << std::endl;
   
   return 0;
 }
