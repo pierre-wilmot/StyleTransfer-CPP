@@ -1,5 +1,6 @@
 #pragma once
 
+#include <queue>
 #include <torch/torch.h>
 
 class StyleTransferImpl : public torch::nn::Module
@@ -29,6 +30,8 @@ public:
   torch::Tensor forward(torch::Tensor input)
   {
     torch::Tensor x = input;
+    if (x.dim() == 3)
+      x = x.unsqueeze(0);
     x = torch::relu(_conv1_1(x));
     _features1_1 = x;
     x = torch::relu(_conv1_2(x));
@@ -75,7 +78,9 @@ public:
   {
     canvas.set_requires_grad(true);
     torch::optim::Adam optim(std::vector<torch::Tensor>({canvas}), torch::optim::AdamOptions(0.05));
-    for (unsigned int i(0) ; i < 1000 ; ++i)
+    std::queue<float> losses;
+    unsigned int i(0);
+    while (true)
       {
 	optim.zero_grad();
 	forward(canvas);
@@ -85,9 +90,17 @@ public:
 	loss += torch::mse_loss(gram(_features4_1), _gram4_1);
 	loss += torch::mse_loss(gram(_features5_1), _gram5_1);
 	std::cout << i << " -- " << loss.item<float>() << std::endl;
+	i++;
+	if (i > 100 && losses.front() < losses.back())
+	  break;
+	losses.push(loss.item<float>());
+	if (losses.size() > 10)
+	  losses.pop();
 	loss.backward();
 	optim.step();
       }
+    canvas.set_requires_grad(false);
+    canvas.clamp_(0, 1);
     return canvas;
   }
 
