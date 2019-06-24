@@ -13,6 +13,11 @@ int main(int ac, char **av)
   torch::Tensor t = torch::rand({1, 3, 512, 512});
   torch::Tensor res = model->forward(t);
   std::cout << res.sizes() << std::endl;
+
+  model->setStyle(t);
+
+  t = torch::rand({1, 3, 512, 512});
+  model->optimise(t);
   
   return 0;
 }
