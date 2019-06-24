@@ -15,6 +15,7 @@ int main(int ac, char **av)
     }
   
   StyleTransfer model;
+  torch::load(model, "VGG.pt");
   std::cout << model << std::endl;
 
   torch::Tensor style = imageToTensor(av[1]).unsqueeze(0);
@@ -22,7 +23,7 @@ int main(int ac, char **av)
   
   torch::Tensor canvas = torch::rand({1, 3, 512, 512});
   model->optimise(canvas);
-  tensorToImage(canvas, "result.png");
+  tensorToImage(canvas[0], "result.png");
   
   return 0;
 }

@@ -9,7 +9,10 @@ print("Loading images using C++")
 if len(sys.argv) != 2:
     print("Usage : " + sys.argv[0] + " IMAGE_FILE")
     sys.exit(1)
-    
+
+viz = visdom.Visdom()    
 image = cpp.imageToTensor(sys.argv[1])
-viz = visdom.Visdom()
-viz.image(image)
+viz.image(image, win="BIG")
+image = cpp.resizeImage(image, 256, 256);
+viz.image(image, win="SMALL");
+

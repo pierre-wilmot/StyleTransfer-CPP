@@ -75,7 +75,9 @@ public:
   {
     canvas.set_requires_grad(true);
     torch::optim::Adam optim(std::vector<torch::Tensor>({canvas}), torch::optim::AdamOptions(0.05));
-    for (unsigned int i(0) ; i < 1000 ; ++i)
+    float last = std::numeric_limits<float>::max();
+    unsigned int i(0);
+    while (true)
       {
 	optim.zero_grad();
 	forward(canvas);
@@ -85,9 +87,15 @@ public:
 	loss += torch::mse_loss(gram(_features4_1), _gram4_1);
 	loss += torch::mse_loss(gram(_features5_1), _gram5_1);
 	std::cout << i << " -- " << loss.item<float>() << std::endl;
+	i++;
+	if (loss.item<float>() > last)
+	  break;
+	last = loss.item<float>();
 	loss.backward();
 	optim.step();
       }
+    canvas.set_requires_grad(false);
+    canvas.clamp_(0, 1);
     return canvas;
   }
 
