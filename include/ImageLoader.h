@@ -44,6 +44,8 @@ torch::Tensor resizeImage(torch::Tensor const &image, unsigned int w, unsigned i
   assert(image.dim() == 3);
   torch::Tensor t = image.transpose(2, 1);
   t = t.transpose(2, 0);
+  if (!t.is_contiguous())
+    t = t.clone();
   assert(t.is_contiguous());
   torch::Tensor output = torch::zeros({h, w, 3});
   auto const &s = t.sizes();
