@@ -14,15 +14,16 @@
 torch::Tensor imageToTensor(std::string const &path)
 {
   int x, y, n;
-  float *data = stbi_loadf(path.c_str(), &x, &y, &n, 3);
+  unsigned char *data = stbi_load(path.c_str(), &x, &y, &n, 3);
   if (!data)
     throw std::runtime_error("Failled to load [" + path + "] -- " + stbi_failure_reason());
-  torch::Tensor t = torch::zeros({y, x, 3});
-  memcpy(t.data_ptr(), data, x * y * 3 * sizeof(float));
-  
+  torch::Tensor t = torch::zeros({y, x, 3}).to(caffe2::TypeMeta::Make<unsigned char>());;
+  memcpy(t.data_ptr(), data, x * y * 3);
   stbi_image_free(data);
   t = t.transpose(0, 2);
   t = t.transpose(1, 2);
+  t = t.to(caffe2::TypeMeta::Make<float>());;
+  t.div_(256.0f);
   return t;
 }
 
@@ -55,6 +56,5 @@ torch::Tensor resizeImage(torch::Tensor const &image, unsigned int w, unsigned i
 		     3);
   output = output.transpose(0, 2);
   output = output.transpose(1, 2);
-  output.clamp_(0, 1);
   return output;
 }

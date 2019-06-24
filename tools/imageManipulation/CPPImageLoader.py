@@ -13,6 +13,8 @@ if len(sys.argv) != 2:
 viz = visdom.Visdom()    
 image = cpp.imageToTensor(sys.argv[1])
 viz.image(image, win="BIG")
+
 image = cpp.resizeImage(image, 256, 256);
+image.clamp_(0, 1)
 viz.image(image, win="SMALL");
 
