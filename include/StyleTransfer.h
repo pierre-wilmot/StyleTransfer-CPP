@@ -100,7 +100,6 @@ public:
 	optim.step();
       }
     canvas.set_requires_grad(false);
-    canvas.clamp_(0, 1);
     return canvas;
   }
 
