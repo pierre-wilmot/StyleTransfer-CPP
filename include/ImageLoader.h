@@ -72,7 +72,6 @@ torch::Tensor resizeImage(torch::Tensor const &image, unsigned int w, unsigned i
   assert(t.is_contiguous());
   torch::Tensor output = torch::zeros({h, w, 3});
   auto const &s = t.sizes();
-  std::cout << s << std::endl;
   stbir_resize_float(t.data<float>(), s[1] , s[0] ,  s[1] * s[2] * sizeof(float),
 		     output.data<float>(), w, h, w * 3 * sizeof(float),
 		     3);

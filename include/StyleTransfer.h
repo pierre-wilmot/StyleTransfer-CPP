@@ -3,6 +3,13 @@
 #include <queue>
 #include <torch/torch.h>
 
+class StyleTransferDelegate
+{
+public:
+  virtual void onUpdate(torch::Tensor t) = 0;
+  virtual void onFinished(torch::Tensor t) = 0;
+};
+
 class StyleTransferImpl : public torch::nn::Module
 {
 public:
@@ -26,6 +33,15 @@ public:
       p.set_requires_grad(false);
   }
 
+  void setDelegate(StyleTransferDelegate *d)
+  {
+    _delegate = d;
+  }
+
+  void stopOptmising()
+  {
+    _keepOptimising = false;
+  }
 
   torch::Tensor forward(torch::Tensor input)
   {
@@ -86,7 +102,8 @@ public:
     torch::optim::Adam optim(std::vector<torch::Tensor>({canvas}), torch::optim::AdamOptions(0.05));
     std::queue<float> losses;
     unsigned int i(0);
-    while (true)
+    _keepOptimising = true;
+    while (_keepOptimising)
       {
 	optim.zero_grad();
 	forward(canvas);
@@ -106,8 +123,12 @@ public:
 	  losses.pop();
 	loss.backward();
 	optim.step();
+	if (_delegate && i % 10 == 0)
+	  _delegate->onUpdate(canvas.clone());
       }
     canvas.set_requires_grad(false);
+    if (_delegate)
+      _delegate->onFinished(canvas.clone());
     return canvas;
   }
 
@@ -139,6 +160,9 @@ private:
   torch::Tensor _gram5_1;
 
   torch::Tensor _content;
+
+  StyleTransferDelegate *_delegate;
+  bool _keepOptimising;
 };
 
 TORCH_MODULE(StyleTransfer);
