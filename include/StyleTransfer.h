@@ -66,13 +66,19 @@ public:
   void setStyle(torch::Tensor input)
   {
     forward(input);
-
     _gram1_1 = gram(_features1_1);
     _gram2_1 = gram(_features2_1);
     _gram3_1 = gram(_features3_1);
     _gram4_1 = gram(_features4_1);
     _gram5_1 = gram(_features5_1);
   }
+
+  void setContent(torch::Tensor input)
+  {
+    forward(input);
+    _content = _features4_1.clone();
+  }
+  
 
   torch::Tensor optimise(torch::Tensor &canvas)
   {
@@ -89,7 +95,9 @@ public:
 	loss += torch::mse_loss(gram(_features3_1), _gram3_1);
 	loss += torch::mse_loss(gram(_features4_1), _gram4_1);
 	loss += torch::mse_loss(gram(_features5_1), _gram5_1);
-	std::cout << i << " -- " << loss.item<float>() << std::endl;
+	if (_content.defined())
+	  loss += torch::mse_loss(_features4_1, _content) * 10000;
+	std::cout << canvas.sizes()[2] << " - " << i << " -- " << loss.item<float>() << std::endl;
 	i++;
 	if (i > 100 && losses.front() < losses.back())
 	  break;
@@ -129,6 +137,8 @@ private:
   torch::Tensor _gram3_1;
   torch::Tensor _gram4_1;
   torch::Tensor _gram5_1;
+
+  torch::Tensor _content;
 };
 
 TORCH_MODULE(StyleTransfer);
