@@ -88,3 +88,20 @@ torch::Tensor resizePreprocessedImage(torch::Tensor const &image, unsigned int w
   t = resizeImage(t, w, h);
   return preprocess(t);
 }
+
+torch::Tensor exportPreprocessedToSDL(torch::Tensor t, unsigned int w, unsigned int h)
+{
+  if (t.sizes()[1] != h || t.sizes()[2] != w)
+    t = resizePreprocessedImage(t, w, h);  
+  torch::Tensor t2 = torch::zeros({4, t.sizes()[1], t.sizes()[2]});
+  t2[1].copy_(t[2]);
+  t2[2].copy_(t[1]);
+  t2[3].copy_(t[0]);
+  t2[3].sub_(-0.485/0.229).div_(1/0.229);
+  t2[2].sub_(-0.456/0.224).div_(1/0.224);
+  t2[1].sub_(-0.406/0.225).div_(1/0.225);
+  t2.mul_(255);
+  t2 = t2.transpose(2, 1);
+  t2 = t2.transpose(2, 0);
+  return t2.to(caffe2::TypeMeta::Make<unsigned char>()); // Ensure continious memory
+}
