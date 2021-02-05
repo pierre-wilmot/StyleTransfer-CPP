@@ -68,12 +68,12 @@ torch::Tensor resizeImage(torch::Tensor const &image, unsigned int w, unsigned i
   torch::Tensor t = image.transpose(2, 1);
   t = t.transpose(2, 0);
   if (!t.is_contiguous())
-    t = t.clone();
+    t = t.contiguous();
   assert(t.is_contiguous());
   torch::Tensor output = torch::zeros({h, w, 3});
   auto const &s = t.sizes();
-  stbir_resize_float(t.data<float>(), s[1] , s[0] ,  s[1] * s[2] * sizeof(float),
-		     output.data<float>(), w, h, w * 3 * sizeof(float),
+  stbir_resize_float(t.data_ptr<float>(), s[1] , s[0] ,  s[1] * s[2] * sizeof(float),
+		     output.data_ptr<float>(), w, h, w * 3 * sizeof(float),
 		     3);
   output = output.transpose(0, 2);
   output = output.transpose(1, 2);
