@@ -15,8 +15,6 @@ public:
     _win = SDL_CreateWindow("Hello World!", 100, 100, 512, 512, SDL_WINDOW_SHOWN);
     _ren = SDL_CreateRenderer(_win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     _tex = SDL_CreateTexture(_ren, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, 512, 512);
-    int w, h; unsigned int format;
-    SDL_QueryTexture(_tex, &format, nullptr, &w, &h);
     _running = true;
   }
 
@@ -43,12 +41,23 @@ public:
   {
     if (_t.defined())
       {
-	torch::Tensor t = exportPreprocessedToSDL(_t, 512, 512);
+	unsigned int tensor_width = _t.sizes()[2];
+	unsigned int tensor_height = _t.sizes()[1];
+	int texture_width(0);
+	int texture_height(0);
+	SDL_QueryTexture(_tex, nullptr, nullptr, &texture_width, &texture_height);
+	if (texture_width != tensor_width || texture_height != tensor_height)
+	{
+	  SDL_DestroyTexture(_tex);
+	  _tex = SDL_CreateTexture(_ren, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, tensor_width, tensor_height);
+	}
+
+	torch::Tensor t = exportPreprocessedToSDL(_t, tensor_width, tensor_height);
 	int pitch;
 	SDL_LockTexture(_tex, nullptr, &_pixels, &pitch);
-	memcpy(_pixels, t.data_ptr(), 512 * 512 * 4);
+	memcpy(_pixels, t.data_ptr(), tensor_width * tensor_height * 4);
 	SDL_UnlockTexture(_tex);
-	
+
 	SDL_RenderClear(_ren);
 	SDL_RenderCopy(_ren, _tex, NULL, NULL);
 	SDL_RenderPresent(_ren);
@@ -59,7 +68,7 @@ public:
   {
     SDL_Event event;
     while (_running)
-      {	
+      {
 	while (SDL_PollEvent(&event))
 	  {
 	    if (event.type == SDL_QUIT)
@@ -79,7 +88,7 @@ public:
   {
     _running = true;
   }
-  
+
 private:
   SDL_Window *_win;
   SDL_Renderer *_ren;
@@ -97,7 +106,7 @@ int main(int ac, char **av)
       std::cout << "Usage: " << av[0] << " CONTENT_IMAGE STYLE_IMAGES" << std::endl;
       return 0;
     }
-  
+
   StyleTransfer model;
   torch::load(model, "VGG.pt");
   std::cout << model << std::endl;
