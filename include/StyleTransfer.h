@@ -94,12 +94,11 @@ public:
     forward(input);
     _content = _features4_1.clone();
   }
-  
 
   torch::Tensor optimise(torch::Tensor &canvas)
   {
     canvas.set_requires_grad(true);
-    torch::optim::Adam optim(std::vector<torch::Tensor>({canvas}), torch::optim::AdamOptions(0.05));
+    torch::optim::Adam optim(std::vector<torch::Tensor>({canvas}), torch::optim::AdamOptions(0.001));
     std::queue<float> losses;
     unsigned int i(0);
     _keepOptimising = true;
@@ -113,7 +112,7 @@ public:
 	loss += torch::mse_loss(gram(_features4_1), _gram4_1);
 	loss += torch::mse_loss(gram(_features5_1), _gram5_1);
 	if (_content.defined())
-	  loss += torch::mse_loss(_features4_1, _content) * 10000;
+	  loss += torch::mse_loss(_features4_1, _content) * 100000;
 	std::cout << canvas.sizes()[2] << " - " << i << " -- " << loss.item<float>() << std::endl;
 	i++;
 	if (i > 100 && losses.front() < losses.back())
@@ -161,7 +160,7 @@ private:
 
   torch::Tensor _content;
 
-  StyleTransferDelegate *_delegate;
+  StyleTransferDelegate *_delegate = nullptr;
   bool _keepOptimising;
 };
 

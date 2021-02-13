@@ -55,6 +55,7 @@ int tensorToImage(torch::Tensor const &image, std::string const &path)
   t = t.transpose(2, 0);
   t.clamp_(0, 1);
   t.mul_(255);
+  t = t.cpu();
   t = t.to(caffe2::TypeMeta::Make<unsigned char>());
   assert(t.is_contiguous());
   // [H, W, C]
@@ -72,12 +73,12 @@ torch::Tensor resizeImage(torch::Tensor const &image, unsigned int w, unsigned i
   assert(t.is_contiguous());
   torch::Tensor output = torch::zeros({h, w, 3});
   auto const &s = t.sizes();
-  stbir_resize_float(t.data_ptr<float>(), s[1] , s[0] ,  s[1] * s[2] * sizeof(float),
+  stbir_resize_float(t.cpu().data_ptr<float>(), s[1] , s[0] ,  s[1] * s[2] * sizeof(float),
 		     output.data_ptr<float>(), w, h, w * 3 * sizeof(float),
 		     3);
   output = output.transpose(0, 2);
   output = output.transpose(1, 2);
-  return output;
+  return output.to(image.device());
 }
 
 torch::Tensor resizePreprocessedImage(torch::Tensor const &image, unsigned int w, unsigned int h)
@@ -91,7 +92,7 @@ torch::Tensor resizePreprocessedImage(torch::Tensor const &image, unsigned int w
 torch::Tensor exportPreprocessedToSDL(torch::Tensor t, unsigned int w, unsigned int h)
 {
   if (t.sizes()[1] != h || t.sizes()[2] != w)
-    t = resizePreprocessedImage(t, w, h);  
+    t = resizePreprocessedImage(t, w, h);
   torch::Tensor t2 = torch::zeros({4, t.sizes()[1], t.sizes()[2]});
   t2[1].copy_(t[2]);
   t2[2].copy_(t[1]);
@@ -102,5 +103,6 @@ torch::Tensor exportPreprocessedToSDL(torch::Tensor t, unsigned int w, unsigned 
   t2.mul_(255);
   t2 = t2.transpose(2, 1);
   t2 = t2.transpose(2, 0);
+  t2 = t2.contiguous();
   return t2.to(caffe2::TypeMeta::Make<unsigned char>()); // Ensure continious memory
 }

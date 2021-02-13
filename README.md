@@ -24,4 +24,4 @@ ln -s ../tools/modelExporter/VGG.pt .
 ```
 
 Now everything is ready, you can run the StyleTransferCLI executable
-```StyleTransferCLI PATH_TO_TOUR_IMAGE.png```
+```StyleTransferCLI PATH_TO_CONTENT_IMAGE.png PATH_TO_STYLE_IMAGE```
