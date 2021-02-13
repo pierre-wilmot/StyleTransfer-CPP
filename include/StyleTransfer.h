@@ -76,7 +76,11 @@ public:
   torch::Tensor gram(torch::Tensor const &features)
   {
     torch::Tensor view = features[0].view({features.sizes()[1], -1});
-    return torch::mm(view, view.t());
+    torch::Tensor gram = torch::mm(view, view.t());
+    // Divide the gram by the number of elements that went in.
+    // This is so that the values are in the same range if style and canvas have different resolutions
+    gram /= view.sizes()[1];
+    return gram;
   }
 
   void setStyle(torch::Tensor input)
@@ -98,7 +102,7 @@ public:
   torch::Tensor optimise(torch::Tensor &canvas)
   {
     canvas.set_requires_grad(true);
-    torch::optim::Adam optim(std::vector<torch::Tensor>({canvas}), torch::optim::AdamOptions(0.001));
+    torch::optim::Adam optim(std::vector<torch::Tensor>({canvas}), torch::optim::AdamOptions(0.01));
     std::queue<float> losses;
     unsigned int i(0);
     _keepOptimising = true;
@@ -112,7 +116,7 @@ public:
 	loss += torch::mse_loss(gram(_features4_1), _gram4_1);
 	loss += torch::mse_loss(gram(_features5_1), _gram5_1);
 	if (_content.defined())
-	  loss += torch::mse_loss(_features4_1, _content) * 100000;
+	  loss += torch::mse_loss(_features4_1, _content) / 5;
 	std::cout << canvas.sizes()[2] << " - " << i << " -- " << loss.item<float>() << std::endl;
 	i++;
 	if (i > 100 && losses.front() < losses.back())
