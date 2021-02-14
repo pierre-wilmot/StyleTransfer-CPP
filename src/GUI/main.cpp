@@ -125,7 +125,7 @@ int main(int ac, char **av)
       {
   	torch::Tensor scaledContent = resizePreprocessedImage(content, canvas.sizes()[1] , canvas.sizes()[2]);
   	model->setContent(scaledContent);
-  	torch::Tensor scaledStyle = resizePreprocessedImage(style, style.sizes()[1] / ratio , style.sizes()[2] /ratio);
+  	torch::Tensor scaledStyle = resizePreprocessedImage(style, style.sizes()[1] / ratio , style.sizes()[2] / ratio);
   	model->setStyle(scaledStyle);
       }
       gui.setRunning();
