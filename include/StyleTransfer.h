@@ -99,8 +99,9 @@ public:
     _content = _features4_1.clone();
   }
 
-  torch::Tensor computeLoss() const
+  torch::Tensor computeLoss(torch::Tensor &canvas)
   {
+    forward(canvas);
     auto loss = torch::mse_loss(gram(_features1_1), _gram1_1);
     loss += torch::mse_loss(gram(_features2_1), _gram2_1);
     loss += torch::mse_loss(gram(_features3_1), _gram3_1);
@@ -121,8 +122,7 @@ public:
     while (_keepOptimising)
       {
 	optim.zero_grad();
-	forward(canvas);
-	torch::Tensor loss = computeLoss();
+	torch::Tensor loss = computeLoss(canvas);
 	std::cout << canvas.sizes()[2] << " - " << i << " -- " << loss.item<float>() << std::endl;
 	i++;
 	if (i > 100 && losses.front() < losses.back())

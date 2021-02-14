@@ -57,6 +57,7 @@ int tensorToImage(torch::Tensor const &image, std::string const &path)
   t.mul_(255);
   t = t.cpu();
   t = t.to(caffe2::TypeMeta::Make<unsigned char>());
+  t = t.contiguous();
   assert(t.is_contiguous());
   // [H, W, C]
   auto const &s = t.sizes();
