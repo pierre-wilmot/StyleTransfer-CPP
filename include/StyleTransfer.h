@@ -75,6 +75,11 @@ public:
 
   torch::Tensor gram(torch::Tensor const &features)
   {
+    // Do not compute a GRAM matrices for feature maps smaller than 9x9
+    // This is to avoid reproducing the input strcture too closely
+    if (features.sizes()[2] < 9 || features.sizes()[3] < 9)
+      return torch::Tensor();
+
     torch::Tensor view = features[0].view({features.sizes()[1], -1});
     torch::Tensor gram = torch::mm(view, view.t());
     // Divide the gram by the number of elements that went in.
@@ -99,6 +104,33 @@ public:
     _content = _features4_1.clone();
   }
 
+  torch::Tensor computeLoss(torch::Tensor &canvas)
+  {
+    forward(canvas);
+
+    torch::Tensor loss = torch::mse_loss(gram(_features1_1), _gram1_1);
+
+    torch::Tensor gram2_1 = gram(_features2_1);
+    if (gram2_1.defined() && _gram2_1.defined())
+      loss += torch::mse_loss(gram2_1, _gram2_1);
+
+    torch::Tensor gram3_1 = gram(_features3_1);
+    if (gram3_1.defined() && _gram3_1.defined())
+      loss += torch::mse_loss(gram3_1, _gram3_1);
+
+    torch::Tensor gram4_1 = gram(_features4_1);
+    if (gram4_1.defined() && _gram4_1.defined())
+      loss += torch::mse_loss(gram4_1, _gram4_1);
+
+    torch::Tensor gram5_1 = gram(_features5_1);
+    if (gram5_1.defined() && _gram5_1.defined())
+      loss += torch::mse_loss(gram5_1, _gram5_1);
+
+    if (_content.defined())
+      loss += torch::mse_loss(_features4_1, _content) / 5;
+    return loss;
+  }
+
   torch::Tensor optimise(torch::Tensor &canvas)
   {
     canvas.set_requires_grad(true);
@@ -109,14 +141,7 @@ public:
     while (_keepOptimising)
       {
 	optim.zero_grad();
-	forward(canvas);
-	auto loss = torch::mse_loss(gram(_features1_1), _gram1_1);
-	loss += torch::mse_loss(gram(_features2_1), _gram2_1);
-	loss += torch::mse_loss(gram(_features3_1), _gram3_1);
-	loss += torch::mse_loss(gram(_features4_1), _gram4_1);
-	loss += torch::mse_loss(gram(_features5_1), _gram5_1);
-	if (_content.defined())
-	  loss += torch::mse_loss(_features4_1, _content) / 5;
+	torch::Tensor loss = computeLoss(canvas);
 	std::cout << canvas.sizes()[2] << " - " << i << " -- " << loss.item<float>() << std::endl;
 	i++;
 	if (i > 100 && losses.front() < losses.back())
