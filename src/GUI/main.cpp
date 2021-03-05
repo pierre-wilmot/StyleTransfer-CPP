@@ -167,10 +167,15 @@ int main(int ac, char **av)
       std::thread t( [&]() { model->optimise(canvas); } );
       gui.run();
       model->stopOptmising();
+      std::cout << model << std::endl;
       t.join();
     }
-  tensorToImage(canvas, "result.png");
-  SDL_Delay(1000);
 
+  tensorToImage(canvas, "result.png");
+  torch::Tensor tilled = torch::cat(std::vector<torch::Tensor>({canvas, canvas}), 2);
+  tilled = torch::cat(std::vector<torch::Tensor>({tilled, tilled}), 1);
+  tensorToImage(tilled, "tilled.png");
+
+  SDL_Delay(1000);
   return 0;
 }
