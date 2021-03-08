@@ -2,7 +2,7 @@
 #include <torch/torch.h>
 
 #include "args.h"
-#include "StyleTransfer.h"
+#include "MultiscaleStyleTransfer.h"
 #include "ImageLoader.h"
 
 int main(int ac, char **av)
@@ -15,6 +15,7 @@ int main(int ac, char **av)
   args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
   args::ValueFlag<std::string> contentArgument(parser, "content", "Path to the content image", {"content"});
   args::ValueFlag<std::string> styleArgument(parser, "style", "Path to the style image", {"style"}, args::Options::Required);
+  args::ValueFlag<int> scalesArgument(parser, "scales", "Number of scales to use", {"scales"});
 
   // Parse command line arguments
   try
@@ -35,7 +36,12 @@ int main(int ac, char **av)
   torch::Device device = torch::cuda::is_available() ? torch::kCUDA : torch::kCPU;
   std::cout << "Using device " << (torch::cuda::is_available() ? "CUDA" : "CPU") << std::endl;
 
-  StyleTransfer model;
+  unsigned int scales(4);
+  if (args::get(scalesArgument))
+    scales = args::get(scalesArgument);
+  std::cout << "Using " << scales << " scales" << std::endl;
+
+  MultiscaleStyleTransfer model(scales);
   torch::load(model, "VGG.pt");
   std::cout << model << std::endl;
   model->to(device);

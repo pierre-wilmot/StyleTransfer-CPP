@@ -52,6 +52,12 @@ public:
 
   torch::Tensor forward(torch::Tensor input)
   {
+    _features1_1 = torch::Tensor();
+    _features2_1 = torch::Tensor();
+    _features3_1 = torch::Tensor();
+    _features4_1 = torch::Tensor();
+    _features5_1 = torch::Tensor();
+
     torch::Tensor x = input;
     if (x.dim() == 3)
       x = x.unsqueeze(0);
@@ -138,13 +144,8 @@ public:
     setPaddingMode(torch::kZeros, v);
   }
 
-  void setStyle(torch::Tensor input)
+  virtual void setStyle(torch::Tensor input)
   {
-    _features1_1 = torch::Tensor();
-    _features2_1 = torch::Tensor();
-    _features3_1 = torch::Tensor();
-    _features4_1 = torch::Tensor();
-    _features5_1 = torch::Tensor();
     setNoPadding(0);
     forward(input);
     _model.gram1_1 = gram(_features1_1);
@@ -154,14 +155,24 @@ public:
     _model.gram5_1 = gram(_features5_1);
   }
 
-  void setContent(torch::Tensor input)
+  virtual void setContent(torch::Tensor input)
   {
     setNoPadding(1);
     forward(input);
     _model.content = _features4_1.clone();
   }
 
-  torch::Tensor computeLoss(torch::Tensor &canvas)
+  void setModel(TextureModel const &model)
+  {
+    _model = model;
+  }
+
+  TextureModel getModel() const
+  {
+    return _model.clone();
+  }
+
+  virtual torch::Tensor computeLoss(torch::Tensor &canvas)
   {
     forward(canvas);
 
@@ -185,6 +196,7 @@ public:
 
     if (_model.content.defined())
       loss += torch::mse_loss(_features4_1, _model.content) / 5;
+
     return loss;
   }
 
