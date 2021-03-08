@@ -3,7 +3,7 @@
 #include <SDL.h>
 
 #include "args.h"
-#include "StyleTransfer.h"
+#include "MultiscaleStyleTransfer.h"
 #include "ImageLoader.h"
 
 
@@ -109,6 +109,7 @@ int main(int ac, char **av)
   args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
   args::ValueFlag<std::string> contentArgument(parser, "content", "Path to the content image", {"content"});
   args::ValueFlag<std::string> styleArgument(parser, "style", "Path to the style image", {"style"}, args::Options::Required);
+  args::ValueFlag<int> scalesArgument(parser, "scales", "Number of scales to use", {"scales"});
 
   // Parse command line arguments
   try
@@ -129,10 +130,16 @@ int main(int ac, char **av)
   torch::Device device = torch::cuda::is_available() ? torch::kCUDA : torch::kCPU;
   std::cout << "Using device " << (torch::cuda::is_available() ? "CUDA" : "CPU") << std::endl;
 
-  StyleTransfer model;
+  unsigned int scales(4);
+  if (args::get(scalesArgument))
+    scales = args::get(scalesArgument);
+  std::cout << "Using " << scales << " scales" << std::endl;
+
+  MultiscaleStyleTransfer model(scales);
   torch::load(model, "VGG.pt");
   model->to(device);
   std::cout << model << std::endl;
+
 
   StyleTransferGUI gui;
   model->setDelegate(&gui);
@@ -149,16 +156,16 @@ int main(int ac, char **av)
   style = style.to(device);
   tensorToImage(style, "style.png");
 
-  torch::Tensor canvas = torch::rand({3, 32, 32});
+  torch::Tensor canvas = torch::rand({3, 16, 16});
   canvas = canvas.to(device);
-  for (float ratio : {8.0, 4.0, 2.0, 1.0})
+  for (float ratio : {16.0, 8.0, 4.0, 2.0, 1.0})
     {
       canvas = resizePreprocessedImage(canvas, canvas.sizes()[1] * 2, canvas.sizes()[2] * 2);
       {
 	if (!args::get(contentArgument).empty())
 	{
 	  torch::Tensor scaledContent = resizePreprocessedImage(content, canvas.sizes()[1] , canvas.sizes()[2]);
-	  model->setContent(scaledContent);
+	  //model->setContent(scaledContent);
 	}
   	torch::Tensor scaledStyle = resizePreprocessedImage(style, style.sizes()[1] / ratio , style.sizes()[2] / ratio);
   	model->setStyle(scaledStyle);

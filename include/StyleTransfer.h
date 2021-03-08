@@ -3,6 +3,8 @@
 #include <queue>
 #include <torch/torch.h>
 
+#include "TextureModel.h"
+
 class StyleTransferDelegate
 {
 public:
@@ -50,6 +52,12 @@ public:
 
   torch::Tensor forward(torch::Tensor input)
   {
+    _features1_1 = torch::Tensor();
+    _features2_1 = torch::Tensor();
+    _features3_1 = torch::Tensor();
+    _features4_1 = torch::Tensor();
+    _features5_1 = torch::Tensor();
+
     torch::Tensor x = input;
     if (x.dim() == 3)
       x = x.unsqueeze(0);
@@ -136,53 +144,59 @@ public:
     setPaddingMode(torch::kZeros, v);
   }
 
-  void setStyle(torch::Tensor input)
+  virtual void setStyle(torch::Tensor input)
   {
-    _features1_1 = torch::Tensor();
-    _features2_1 = torch::Tensor();
-    _features3_1 = torch::Tensor();
-    _features4_1 = torch::Tensor();
-    _features5_1 = torch::Tensor();
     setNoPadding(0);
     forward(input);
-    _gram1_1 = gram(_features1_1);
-    _gram2_1 = gram(_features2_1);
-    _gram3_1 = gram(_features3_1);
-    _gram4_1 = gram(_features4_1);
-    _gram5_1 = gram(_features5_1);
+    _model.gram1_1 = gram(_features1_1);
+    _model.gram2_1 = gram(_features2_1);
+    _model.gram3_1 = gram(_features3_1);
+    _model.gram4_1 = gram(_features4_1);
+    _model.gram5_1 = gram(_features5_1);
   }
 
-  void setContent(torch::Tensor input)
+  virtual void setContent(torch::Tensor input)
   {
     setNoPadding(1);
     forward(input);
-    _content = _features4_1.clone();
+    _model.content = _features4_1.clone();
   }
 
-  torch::Tensor computeLoss(torch::Tensor &canvas)
+  void setModel(TextureModel const &model)
+  {
+    _model = model;
+  }
+
+  TextureModel getModel() const
+  {
+    return _model.clone();
+  }
+
+  virtual torch::Tensor computeLoss(torch::Tensor &canvas)
   {
     forward(canvas);
 
-    torch::Tensor loss = torch::mse_loss(gram(_features1_1), _gram1_1);
+    torch::Tensor loss = torch::mse_loss(gram(_features1_1), _model.gram1_1);
 
     torch::Tensor gram2_1 = gram(_features2_1);
-    if (gram2_1.defined() && _gram2_1.defined())
-      loss += torch::mse_loss(gram2_1, _gram2_1);
+    if (gram2_1.defined() && _model.gram2_1.defined())
+      loss += torch::mse_loss(gram2_1, _model.gram2_1);
 
     torch::Tensor gram3_1 = gram(_features3_1);
-    if (gram3_1.defined() && _gram3_1.defined())
-      loss += torch::mse_loss(gram3_1, _gram3_1);
+    if (gram3_1.defined() && _model.gram3_1.defined())
+      loss += torch::mse_loss(gram3_1, _model.gram3_1);
 
     torch::Tensor gram4_1 = gram(_features4_1);
-    if (gram4_1.defined() && _gram4_1.defined())
-      loss += torch::mse_loss(gram4_1, _gram4_1);
+    if (gram4_1.defined() && _model.gram4_1.defined())
+      loss += torch::mse_loss(gram4_1, _model.gram4_1);
 
     torch::Tensor gram5_1 = gram(_features5_1);
-    if (gram5_1.defined() && _gram5_1.defined())
-      loss += torch::mse_loss(gram5_1, _gram5_1);
+    if (gram5_1.defined() && _model.gram5_1.defined())
+      loss += torch::mse_loss(gram5_1, _model.gram5_1);
 
-    if (_content.defined())
-      loss += torch::mse_loss(_features4_1, _content) / 5;
+    if (_model.content.defined())
+      loss += torch::mse_loss(_features4_1, _model.content) / 5;
+
     return loss;
   }
 
@@ -237,13 +251,7 @@ private:
   torch::Tensor _features4_1;
   torch::Tensor _features5_1;
 
-  torch::Tensor _gram1_1;
-  torch::Tensor _gram2_1;
-  torch::Tensor _gram3_1;
-  torch::Tensor _gram4_1;
-  torch::Tensor _gram5_1;
-
-  torch::Tensor _content;
+  TextureModel _model;
 
   StyleTransferDelegate *_delegate = nullptr;
   bool _keepOptimising;
