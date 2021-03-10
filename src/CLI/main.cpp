@@ -15,6 +15,7 @@ int main(int ac, char **av)
   args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
   args::ValueFlag<std::string> contentArgument(parser, "content", "Path to the content image", {"content"});
   args::ValueFlag<std::string> styleArgument(parser, "style", "Path to the style image", {"style"}, args::Options::Required);
+  args::ValueFlag<std::string> outputArgument(parser, "output", "Path to the output image", {"output"});
   args::ValueFlag<int> scalesArgument(parser, "scales", "Number of scales to use", {"scales"});
 
   // Parse command line arguments
@@ -74,7 +75,9 @@ int main(int ac, char **av)
       model->setStyle(scaledStyle);
     }
     model->optimise(canvas);
-    tensorToImage(canvas, "result_" + std::to_string(int(ratio)) + ".png");
+
+    std::string output = args::get(outputArgument).empty() ? "result.png" : args::get(outputArgument);
+    tensorToImage(canvas, output);
   }
 
   return 0;
