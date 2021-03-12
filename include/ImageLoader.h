@@ -57,7 +57,8 @@ int tensorToImage(torch::Tensor const &image, std::string const &path)
   t.mul_(255);
   t = t.cpu();
   t = t.to(caffe2::TypeMeta::Make<unsigned char>());
-  t = t.contiguous();
+  if (!t.is_contiguous())
+    t = t.contiguous();
   assert(t.is_contiguous());
   // [H, W, C]
   auto const &s = t.sizes();
@@ -84,10 +85,19 @@ torch::Tensor resizeImage(torch::Tensor const &image, unsigned int w, unsigned i
 
 torch::Tensor resizePreprocessedImage(torch::Tensor const &image, unsigned int w, unsigned int h)
 {
-  torch::Tensor t = image.clone();
-  deprocess(t);
-  t = resizeImage(t, w, h);
-  return preprocess(t);
+  torch::Tensor result = image;
+  bool squeeze(false);
+  if (result.sizes().size() == 3)
+  {
+    result = result.unsqueeze(0);
+    squeeze = true;
+  }
+  torch::nn::functional::InterpolateFuncOptions options;
+  options.size(std::vector<int64_t>({h, w})).mode(torch::kNearest);
+  result = torch::nn::functional::interpolate(result, options);
+  if (squeeze)
+    result = result[0];
+  return result;
 }
 
 torch::Tensor exportPreprocessedToSDL(torch::Tensor t, unsigned int w, unsigned int h)
