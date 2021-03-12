@@ -200,19 +200,6 @@ public:
     return loss;
   }
 
-  torch::Tensor computeLoss(torch::Tensor &canvas)
-  {
-    forward(canvas);
-    auto loss = torch::mse_loss(gram(_features1_1), _gram1_1);
-    loss += torch::mse_loss(gram(_features2_1), _gram2_1);
-    loss += torch::mse_loss(gram(_features3_1), _gram3_1);
-    loss += torch::mse_loss(gram(_features4_1), _gram4_1);
-    loss += torch::mse_loss(gram(_features5_1), _gram5_1);
-    if (_content.defined())
-      loss += torch::mse_loss(_features4_1, _content) / 5;
-    return loss;
-  }
-
   torch::Tensor optimise(torch::Tensor &canvas)
   {
     canvas.set_requires_grad(true);
