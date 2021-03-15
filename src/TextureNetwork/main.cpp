@@ -173,6 +173,7 @@ int main(int ac, char **av)
     }
 
     generator->nextStep();
+    torch::save(generator, "generator.pt");
   }
 
   return 0;
