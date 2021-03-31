@@ -117,6 +117,15 @@ public:
     return gram;
   }
 
+  torch::Tensor histogram(torch::Tensor const &features)
+  {
+    if (!features.defined())
+      return torch::Tensor();
+    int64_t b = features.size(0);
+    int64_t c = features.size(1);
+    return std::get<0>(torch::sort(features.view(std::vector<int64_t>({b, c, -1})), 2)).view(features.sizes());
+  }
+
   void setPaddingMode(const torch::nn::detail::conv_padding_mode_t &new_padding_mode, int padding)
   {
     _conv1_1->options.padding_mode(new_padding_mode).padding(padding);
@@ -153,6 +162,12 @@ public:
     _model.gram3_1 = gram(_features3_1);
     _model.gram4_1 = gram(_features4_1);
     _model.gram5_1 = gram(_features5_1);
+
+    _model.style1_1 = histogram(_features1_1);
+    _model.style2_1 = histogram(_features2_1);
+    _model.style3_1 = histogram(_features3_1);
+    _model.style4_1 = histogram(_features4_1);
+    _model.style5_1 = histogram(_features5_1);
   }
 
   virtual void setContent(torch::Tensor input)
@@ -172,30 +187,47 @@ public:
     return _model.clone();
   }
 
+  torch::Tensor gramLoss(torch::Tensor const &features, torch::Tensor const &targetGram)
+  {
+    torch::Tensor g = gram(features);
+    if (g.defined() && targetGram.defined())
+      return torch::mse_loss(g, targetGram);
+    return at::zeros(std::vector<int64_t>({}));
+  }
+
+  torch::Tensor histogramLoss(torch::Tensor const &x, torch::Tensor const &y)
+  {
+    if (!x.defined() || !y.defined())
+      return at::zeros(std::vector<int64_t>({}));
+    torch::nn::functional::InterpolateFuncOptions options;
+    options.size(std::vector<int64_t>({y.size(2), y.size(3)})).mode(torch::kNearest);
+    torch::Tensor t = torch::nn::functional::interpolate(x, options);
+    int64_t b = t.size(0);
+    int64_t c = t.size(1);
+    t = std::get<0>(torch::sort(t.view(std::vector<int64_t>({b, c, -1})), 2));
+    return torch::mse_loss(t, y.view(std::vector<int64_t>({b, c, -1})));
+  }
+
   virtual torch::Tensor computeLoss(torch::Tensor &canvas)
   {
     forward(canvas);
 
     torch::Tensor loss = torch::mse_loss(gram(_features1_1), _model.gram1_1);
+    loss += gramLoss(_features2_1, _model.gram2_1);
+    loss += gramLoss(_features3_1, _model.gram3_1);
+    loss += gramLoss(_features4_1, _model.gram4_1);
+    loss += gramLoss(_features5_1, _model.gram5_1);
 
-    torch::Tensor gram2_1 = gram(_features2_1);
-    if (gram2_1.defined() && _model.gram2_1.defined())
-      loss += torch::mse_loss(gram2_1, _model.gram2_1);
-
-    torch::Tensor gram3_1 = gram(_features3_1);
-    if (gram3_1.defined() && _model.gram3_1.defined())
-      loss += torch::mse_loss(gram3_1, _model.gram3_1);
-
-    torch::Tensor gram4_1 = gram(_features4_1);
-    if (gram4_1.defined() && _model.gram4_1.defined())
-      loss += torch::mse_loss(gram4_1, _model.gram4_1);
-
-    torch::Tensor gram5_1 = gram(_features5_1);
-    if (gram5_1.defined() && _model.gram5_1.defined())
-      loss += torch::mse_loss(gram5_1, _model.gram5_1);
+    torch::Tensor histoLoss = histogramLoss(_features1_1, _model.style1_1);
+    histoLoss += histogramLoss(_features2_1, _model.style2_1);
+    histoLoss += histogramLoss(_features3_1, _model.style3_1);
+    histoLoss += histogramLoss(_features4_1, _model.style4_1);
+    histoLoss += histogramLoss(_features5_1, _model.style5_1);
 
     if (_model.content.defined())
       loss += torch::mse_loss(_features4_1, _model.content) / 5;
+
+    loss += histoLoss / 100000;
 
     return loss;
   }
