@@ -12,24 +12,31 @@ public:
   ResidualBlockImpl(unsigned int nc = 64)
   {
     _c1 = register_module("c1", torch::nn::Conv2d(torch::nn::Conv2dOptions(nc, nc, 3).padding(1).padding_mode(torch::kCircular)));
+    _n1 = register_module("n1", torch::nn::InstanceNorm2d(torch::nn::InstanceNorm2dOptions(nc)));
     _c2 = register_module("c2", torch::nn::Conv2d(torch::nn::Conv2dOptions(nc, nc, 3).padding(1).padding_mode(torch::kCircular)));
+    _n2 = register_module("n2", torch::nn::InstanceNorm2d(torch::nn::InstanceNorm2dOptions(nc)));
     _c3 = register_module("c3", torch::nn::Conv2d(torch::nn::Conv2dOptions(nc, nc, 3).padding(1).padding_mode(torch::kCircular)));
+    _n3 = register_module("n3", torch::nn::InstanceNorm2d(torch::nn::InstanceNorm2dOptions(nc)));
     _c4 = register_module("c4", torch::nn::Conv2d(torch::nn::Conv2dOptions(nc, nc, 3).padding(1).padding_mode(torch::kCircular)));
+    _n4 = register_module("n4", torch::nn::InstanceNorm2d(torch::nn::InstanceNorm2dOptions(nc)));
     _c5 = register_module("c5", torch::nn::Conv2d(torch::nn::Conv2dOptions(nc, nc, 3).padding(1).padding_mode(torch::kCircular)));
+    _n5 = register_module("n5", torch::nn::InstanceNorm2d(torch::nn::InstanceNorm2dOptions(nc)));
     _c6 = register_module("c6", torch::nn::Conv2d(torch::nn::Conv2dOptions(nc, nc, 3).padding(1).padding_mode(torch::kCircular)));
+    _n6 = register_module("n6", torch::nn::InstanceNorm2d(torch::nn::InstanceNorm2dOptions(nc)));
     _c7 = register_module("c7", torch::nn::Conv2d(torch::nn::Conv2dOptions(nc, nc, 3).padding(1).padding_mode(torch::kCircular)));
+    _n7 = register_module("n7", torch::nn::InstanceNorm2d(torch::nn::InstanceNorm2dOptions(nc)));
   }
 
   torch::Tensor forward(torch::Tensor const &x_)
   {
     torch::Tensor x = x_;
-    x = torch::relu(_c1(x));
-    x = torch::relu(_c2(x));
-    x = torch::relu(_c3(x));
-    x = torch::relu(_c4(x));
-    x = torch::relu(_c5(x));
-    x = torch::relu(_c6(x));
-    x = _c7(x);
+    x = _n1(torch::relu(_c1(x)));
+    x = _n2(torch::relu(_c2(x)));
+    x = _n3(torch::relu(_c3(x)));
+    x = _n4(torch::relu(_c4(x)));
+    x = _n5(torch::relu(_c5(x)));
+    x = _n6(torch::relu(_c6(x)));
+    x = _n7(torch::relu(_c7(x)));
     return x + x_;
   }
 
@@ -41,6 +48,15 @@ private:
   torch::nn::Conv2d _c5 = nullptr;
   torch::nn::Conv2d _c6 = nullptr;
   torch::nn::Conv2d _c7 = nullptr;
+
+  torch::nn::InstanceNorm2d _n1 = nullptr;
+  torch::nn::InstanceNorm2d _n2 = nullptr;
+  torch::nn::InstanceNorm2d _n3 = nullptr;
+  torch::nn::InstanceNorm2d _n4 = nullptr;
+  torch::nn::InstanceNorm2d _n5 = nullptr;
+  torch::nn::InstanceNorm2d _n6 = nullptr;
+  torch::nn::InstanceNorm2d _n7 = nullptr;
+
 };
 TORCH_MODULE(ResidualBlock);
 
