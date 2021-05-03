@@ -1,7 +1,7 @@
 #include <iostream>
 #include <torch/torch.h>
 
-#include "StyleTransfer.h"
+#include "MultiscaleStyleTransfer.h"
 #include "ImageLoader.h"
 
 constexpr unsigned int SAMPLES = 5000;
@@ -56,7 +56,6 @@ private:
   torch::nn::InstanceNorm2d _n5 = nullptr;
   torch::nn::InstanceNorm2d _n6 = nullptr;
   torch::nn::InstanceNorm2d _n7 = nullptr;
-
 };
 TORCH_MODULE(ResidualBlock);
 
@@ -117,6 +116,11 @@ public:
     _step++;
   }
 
+  int step() const
+  {
+    return _step;
+  }
+
 private:
   torch::nn::Conv2d _c1 = nullptr;
   ResidualBlock _c2 = nullptr;
@@ -128,6 +132,21 @@ private:
   unsigned int _step = 1;
 };
 TORCH_MODULE(Generator);
+
+struct Noise
+{
+  Noise(int step, int nc, torch::Device device)
+  {
+    int size = 16;
+    for (int i(0) ; i < step ; ++i)
+    {
+      noise[i] = torch::rand({1, (i ? nc : 3), size, size}).to(device);
+      size *= 2;
+    }
+  }
+
+  torch::Tensor noise[6];
+};
 
 int main(int ac, char **av)
 {
@@ -152,7 +171,7 @@ int main(int ac, char **av)
   std::cout << generator << std::endl;
 
   // Instanciate criterion
-  StyleTransfer criterion;
+  MultiscaleStyleTransferImpl criterion(4);
   torch::load(criterion, "VGG.pt");
   criterion->to(device);
   std::cout << criterion << std::endl;
@@ -171,15 +190,9 @@ int main(int ac, char **av)
 
     for (int i(0) ; i < SAMPLES ; ++i)
     {
-      torch::Tensor noise16 = torch::rand({1, 3, 16, 16}).to(device);
-      torch::Tensor noise32 = torch::rand({1, nc, 32, 32}).to(device);
-      torch::Tensor noise64 = torch::rand({1, nc, 64, 64}).to(device);
-      torch::Tensor noise128 = torch::rand({1, nc, 128, 128}).to(device);
-      torch::Tensor noise256 = torch::rand({1, nc, 256, 256}).to(device);
-      torch::Tensor noise512 = torch::rand({1, nc, 512, 512}).to(device);
-
+      Noise n(generator->step(), nc, device);
       optimizer.zero_grad();
-      torch::Tensor stylised = generator(noise16, noise32, noise64, noise128, noise256, noise512);
+      torch::Tensor stylised = generator(n.noise[0], n.noise[1], n.noise[2], n.noise[3], n.noise[4], n.noise[5]);
       if (i % 100 == 0)
 	tensorToImage(stylised[0], std::to_string(i) + ".png");
       torch::Tensor loss = criterion->computeLoss(stylised);
