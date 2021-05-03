@@ -102,7 +102,7 @@ public:
     return x;
   }
 
-  torch::Tensor gram(torch::Tensor const &features)
+  torch::Tensor gram(torch::Tensor const &features) const
   {
     // Do not compute a GRAM matrices for feature maps smaller than 9x9
     // This is to avoid reproducing the input strcture too closely
